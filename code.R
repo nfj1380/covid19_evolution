@@ -28,14 +28,14 @@ ph
 #add branch lengths etc
 p1 <- ggtree(beast , mrsd="2020-04-04") + theme_tree2()+ 
   #geom_tiplab(align=FALSE, linetype='dashed', linesize=0.5, size=1) +  
-  geom_range("length_0.95_HPD", color='red', size=2, alpha=.5, nodes=730) + #gets length estimates 
+  geom_range("length_0.95_HPD", color='red', size=2, alpha=.5) + #gets length estimates 
   geom_text2(aes(label=round(as.numeric(posterior), 2), 
-                 subset=as.numeric(posterior)> 0.9, 
+                 subset=as.numeric(posterior)> 0.8, 
                  x=branch), vjust=0)
 p1
 
 #can isolate particular sections of the tree
-viewClade(p1+geom_tiplab(size=2), node=730)
+viewClade(ph+geom_tiplab(size=2), node=730)
 
 
 #------------------------------------------------------------------------
@@ -43,10 +43,10 @@ viewClade(p1+geom_tiplab(size=2), node=730)
 #------------------------------------------------------------------------
 
 #try min 10 for clade size 
-treeSt <-  trestruct(b, minCladeSize = 100, minOverlap = -Inf, nsim = 10000, #100000 didn't change anythin
+treeSt <-  trestruct(b, minCladeSize = 150, minOverlap = -Inf, nsim = 10000, #100000 didn't change anythin
                      level = 0.05, ncpu = 1, verbosity = 1) 
 #20 gets 12 groups - too many?
-  #50-200 stable 3 groups
+  #50-200 stable 3 groups. >200 1 group (nearly 50% of the sequences)
 treeSt_df <- as.data.frame(treeSt)
 
 plot(treeSt, use_ggtree = TRUE)
@@ -54,13 +54,14 @@ plot(treeSt, use_ggtree = TRUE)
 #----------------------------
 #subset tree - went with three groups 
 #---------------------------
-Clade1 <- tree_subset(beast, node=730,levels_back = 0)
-Clade1nex <- tree_subset(b, node=730,levels_back = 0) #useful for analyses below
 
-#basic tree
+Clade1<- tree_subset(beast , node=594,levels_back = 0) #went with node 594 as it excludes Guandong seq whic could be errors?
+Clade1nex <- tree_subset(b, node=594,levels_back = 0) #useful for analyses below
+
+# going forward in the tree to remove weird outliers
 ggtree(Clade1) + geom_tiplab(size=2)+ geom_text2(aes(subset=!isTip, label=node), hjust=-.3) 
-#more annotation added
-pc1 <- ggtree(Clade1, mrsd="2020-04-04") + theme_tree2()+ 
+
+pc1 <- ggtree(Clade2, mrsd="2020-04-04") + theme_tree2()+ 
   geom_tiplab(align=FALSE, linetype='dashed', linesize=0.5, size=1) +  
   geom_range("length_0.95_HPD", color='red', size=2, alpha=.5, nodes=730) + #gets length estimates 
   geom_text2(aes(label=round(as.numeric(posterior), 2), 
@@ -69,18 +70,15 @@ pc1 <- ggtree(Clade1, mrsd="2020-04-04") + theme_tree2()+
 pc1
 
 Clade1_names <- as.data.frame(get_taxa_name(tree_view = NULL, node = NULL))
-Clade1_names$seq <- as.factor(Clade1_names$seq)
 
-Clade1_names$seq <- gsub(("'"), (""), Clade1_names$seq)
+#clade 2
+Clade2 <- tree_subset(beast, node=730,levels_back = 0) #this isn't right as this subset includes 
+#                                                     clade 3 as well. Need to remove everyhting down from 820. Maybe using ape
+Clade2nex <- tree_subset(b, node=730,levels_back = 0) #useful for analyses below
 
-gsub("%", "", as.character(factor("14.9%")) )
-
-Clade2<- tree_subset(beast , node=594,levels_back = 0)
-Clade2nex <- tree_subset(b, node=594,levels_back = 0) #useful for analyses below
-
-# going forward in the tree to remove weird outliers
-ggtree(Clade2) + geom_tiplab(size=2)+ geom_text2(aes(subset=!isTip, label=node), hjust=-.3) 
-
+#basic tree
+ggtree(Clade1) + geom_tiplab(size=2)+ geom_text2(aes(subset=!isTip, label=node), hjust=-.3) 
+#more annotation added
 pc2 <- ggtree(Clade2, mrsd="2020-04-04") + theme_tree2()+ 
   geom_tiplab(align=FALSE, linetype='dashed', linesize=0.5, size=1) +  
   geom_range("length_0.95_HPD", color='red', size=2, alpha=.5, nodes=730) + #gets length estimates 
@@ -90,8 +88,12 @@ pc2 <- ggtree(Clade2, mrsd="2020-04-04") + theme_tree2()+
 pc2
 
 Clade2_names <- as.data.frame(get_taxa_name(tree_view = NULL, node = NULL))
+Clade2_names$seq <- as.factor(Clade1_names$seq)
 
-Clade3 <- tree_subset(beast , node=820,levels_back = 0)
+Clade2_names$seq <- gsub(("'"), (""), Clade1_names$seq)
+
+
+Clade3 <- tree_subset(beast , node=820,levels_back = 0) 
 Clade3nex <- tree_subset(b, node=820,levels_back = 0)#useful for analyses below
 
 ggtree(Clade3) + geom_tiplab(size=2)+ geom_text2(aes(subset=!isTip, label=node), hjust=-.3) #complete tree
