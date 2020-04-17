@@ -26,7 +26,7 @@ ph <- ggtree(beast) + geom_tiplab(size=2)+ geom_text2(aes(subset=!isTip, label=n
 ph  
 
 #add branch lengths etc
-p1 <- ggtree(beast , mrsd="2020-04-04") + theme_tree2()+ 
+p1 <- ggtree(beast , mrsd="2020-03-24") + theme_tree2()+ 
   #geom_tiplab(align=FALSE, linetype='dashed', linesize=0.5, size=1) +  
   geom_range("length_0.95_HPD", color='red', size=2, alpha=.5) + #gets length estimates 
   geom_text2(aes(label=round(as.numeric(posterior), 2), 
@@ -35,7 +35,7 @@ p1 <- ggtree(beast , mrsd="2020-04-04") + theme_tree2()+
 p1
 
 #can isolate particular sections of the tree
-viewClade(ph+geom_tiplab(size=2), node=730)
+viewClade(ph+geom_tiplab(size=2), node=764)
 
 
 #------------------------------------------------------------------------
@@ -55,15 +55,18 @@ plot(treeSt, use_ggtree = TRUE)
 #subset tree - went with three groups 
 #---------------------------
 
-Clade1<- tree_subset(beast , node=594,levels_back = 0) #went with node 594 as it excludes Guandong seq whic could be errors?
-Clade1nex <- tree_subset(b, node=594,levels_back = 0) #useful for analyses below
+
+tokeepc1<-setdiff(b$tip.label,names(treeSt$clustering)[which(treeSt$clustering==2)])
+Clade1nex<-drop.tip(b,tokeepc1)
+Clade1<-drop.tip(beast,substr(tokeepc1,2,nchar(tokeepc1)-1))
+
 
 # going forward in the tree to remove weird outliers
 ggtree(Clade1) + geom_tiplab(size=2)+ geom_text2(aes(subset=!isTip, label=node), hjust=-.3) 
 
-pc1 <- ggtree(Clade2, mrsd="2020-04-04") + theme_tree2()+ 
+pc1 <- ggtree(Clade2, mrsd="2020-03-24") + theme_tree2()+ 
   geom_tiplab(align=FALSE, linetype='dashed', linesize=0.5, size=1) +  
-  geom_range("length_0.95_HPD", color='red', size=2, alpha=.5, nodes=730) + #gets length estimates 
+  geom_range("length_0.95_HPD", color='red', size=2, alpha=.5,) + #gets length estimates 
   geom_text2(aes(label=round(as.numeric(posterior), 2), 
                  subset=as.numeric(posterior)> 0.9, 
                  x=branch), vjust=0)
@@ -72,14 +75,16 @@ pc1
 Clade1_names <- as.data.frame(get_taxa_name(tree_view = NULL, node = NULL))
 
 #clade 2
-Clade2 <- tree_subset(beast, node=730,levels_back = 0) #this isn't right as this subset includes 
-#                                                     clade 3 as well. Need to remove everyhting down from 820. Maybe using ape
-Clade2nex <- tree_subset(b, node=730,levels_back = 0) #useful for analyses below
+
+tokeep<-setdiff(b$tip.label,names(treeSt$clustering)[which(treeSt$clustering==3)])
+
+Clade2nex<-drop.tip(b,tokeep)
+Clade2<-drop.tip(beast,substr(tokeep,2,nchar(tokeep)-1))
 
 #basic tree
-ggtree(Clade1) + geom_tiplab(size=2)+ geom_text2(aes(subset=!isTip, label=node), hjust=-.3) 
+ggtree(Clade2nex) + geom_tiplab(size=2)+ geom_text2(aes(subset=!isTip, label=node), hjust=-.3) 
 #more annotation added
-pc2 <- ggtree(Clade2, mrsd="2020-04-04") + theme_tree2()+ 
+pc2 <- ggtree(Clade2, mrsd="2020-03-24") + theme_tree2()+ 
   geom_tiplab(align=FALSE, linetype='dashed', linesize=0.5, size=1) +  
   geom_range("length_0.95_HPD", color='red', size=2, alpha=.5, nodes=730) + #gets length estimates 
   geom_text2(aes(label=round(as.numeric(posterior), 2), 
@@ -98,7 +103,7 @@ Clade3nex <- tree_subset(b, node=820,levels_back = 0)#useful for analyses below
 
 ggtree(Clade3) + geom_tiplab(size=2)+ geom_text2(aes(subset=!isTip, label=node), hjust=-.3) #complete tree
 
-pc3 <- ggtree(Clade3, mrsd="2020-04-04") + theme_tree2()+ 
+pc3 <- ggtree(Clade3, mrsd="2020-03-24") + theme_tree2()+ 
   geom_tiplab(align=FALSE, linetype='dashed', linesize=0.5, size=1) +  
   geom_range("length_0.95_HPD", color='red', size=2, alpha=.5, nodes=730) + #gets length estimates 
   geom_text2(aes(label=round(as.numeric(posterior), 2), 
@@ -154,14 +159,14 @@ fitC1 <- skygrowth.map(Clade1nex,
 plot(fitC1)
 growth.plot(fitC1)+theme_bw()
 
-fitC2 <- skygrowth.map(Clade2,  
+fitC2 <- skygrowth.map(Clade2nex,  
                        , res = 7*5  # Ne changes every 3 days or so? Doesn't change much.
                        , tau0 = .1    # Smoothing parameter. If prior is not specified, this will also set the scale of the prior
 )
 plot(fitC2)
-growth.plot(fitC2)
+growth.plot(fitC2)+theme_bw()
 
-fitC3 <- skygrowth.map(Clade3,  
+fitC3 <- skygrowth.map(Clade3nex,  
                        , res = 7*5  # Ne changes every 3 days or so? Doesn't change much.
                        , tau0 = .1    # Smoothing parameter. If prior is not specified, this will also set the scale of the prior
 )
@@ -169,12 +174,12 @@ plot(fitC3)
 growth.plot(fitC3)
 
 #fit with mcmc - I get a different result here than with skygrid map. I'm laos struggling to check convergence
-mcmcfit_c1 <- skygrowth.mcmc(Clade1nex, res = 35, tau0=.1, mhsteps= 1e+06 ) #maybe 10 million?
+mcmcfit_c1 <- skygrowth.mcmc(Clade1nex, res = 35, tau0=.1, mhsteps= 1e+07 ) #maybe 10 million?
 growth.plot( mcmcfit_c1 )+theme_bw()
 
 #check mcmc diagnostics - not working as yet - not sure what parameters to assess in mcmcfit_c1 
-#a1 <- as.mcmc(as.data.frnot sure ame(mcmcfit_c1$growthrate))
-#effectiveSize(a1)#time series length N, square  root{var x)}/n
+a1 <- as.mcmc(as.data.frame(mcmcfit_c1$growthrate))
+effectiveSize(a1)#time series length N, square  root{var x)}/n
 
 #make a ggmcmc object
 #ggA <- ggs(a1)
@@ -183,10 +188,10 @@ growth.plot( mcmcfit_c1 )+theme_bw()
 #ggs_traceplot(ggA)
 
 
-mcmcfit_c2 <- skygrowth.mcmc(Clade2nex, res = 35, tau0=.1, mhsteps= 1e+05 ) #not sure how to tune this
+mcmcfit_c2 <- skygrowth.mcmc(Clade2nex, res = 35, tau0=.1, mhsteps= 1e+07 ) #not sure how to tune this
 growth.plot( mcmcfit_c2 )+theme_bw()
 
-mcmcfit_c3 <- skygrowth.mcmc(Clade3nex, res = 35, tau0=.1, mhsteps= 1e+05 ) #not sure how to tune this
+mcmcfit_c3 <- skygrowth.mcmc(Clade3nex, res = 35, tau0=.1, mhsteps= 1e+07 ) #not sure how to tune this
 growth.plot( mcmcfit_c3 )+theme_bw()
 
 str(mcmcfit_c3)
