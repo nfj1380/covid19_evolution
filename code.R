@@ -28,7 +28,7 @@ ph
 #add branch lengths etc
 p1 <- ggtree(beast , mrsd="2020-03-24") + theme_tree2()+ 
   #geom_tiplab(align=FALSE, linetype='dashed', linesize=0.5, size=1) +  
-  geom_range("length_0.95_HPD", color='red', size=2, alpha=.5) + #gets length estimates 
+  #geom_range("length_0.95_HPD", color='red', size=2, alpha=.5) + #gets length estimates 
   geom_text2(aes(label=round(as.numeric(posterior), 2), 
                  subset=as.numeric(posterior)> 0.8, 
                  x=branch), vjust=0)
@@ -64,7 +64,7 @@ Clade1<-drop.tip(beast,substr(tokeepc1,2,nchar(tokeepc1)-1))
 # going forward in the tree to remove weird outliers
 ggtree(Clade1) + geom_tiplab(size=2)+ geom_text2(aes(subset=!isTip, label=node), hjust=-.3) 
 
-pc1 <- ggtree(Clade2, mrsd="2020-03-24") + theme_tree2()+ 
+pc1 <- ggtree(Clade1, mrsd="2020-03-24") + theme_tree2()+ 
   geom_tiplab(align=FALSE, linetype='dashed', linesize=0.5, size=1) +  
   geom_range("length_0.95_HPD", color='red', size=2, alpha=.5,) + #gets length estimates 
   geom_text2(aes(label=round(as.numeric(posterior), 2), 
@@ -101,7 +101,7 @@ Clade2_names$seq <- gsub(("'"), (""), Clade1_names$seq)
 Clade3 <- tree_subset(beast , node=820,levels_back = 0) 
 Clade3nex <- tree_subset(b, node=820,levels_back = 0)#useful for analyses below
 
-ggtree(Clade3) + geom_tiplab(size=2)+ geom_text2(aes(subset=!isTip, label=node), hjust=-.3) #complete tree
+ggtree(Clade3nex) + geom_tiplab(size=2)+ geom_text2(aes(subset=!isTip, label=node), hjust=-.3) #complete tree
 
 pc3 <- ggtree(Clade3, mrsd="2020-03-24") + theme_tree2()+ 
   geom_tiplab(align=FALSE, linetype='dashed', linesize=0.5, size=1) +  
@@ -157,7 +157,9 @@ fitC1 <- skygrowth.map(Clade1nex,
                      , tau0 = .1    # Smoothing parameter. If prior is not specified, this will also set the scale of the prior
 )
 plot(fitC1)
-growth.plot(fitC1)+theme_bw()
+growth.plot(fitC1, forward=TRUE)+theme_bw()+scale_x_reverse()
+R.plot(fitC1, forward=TRUE, gamma=0.85)+theme_bw()+scale_x_reverse() #no idea what gamma could be for COVID19
+neplot(fitC1) #increasing - but no surprise there. Very different to the phylofynn version
 
 fitC2 <- skygrowth.map(Clade2nex,  
                        , res = 7*5  # Ne changes every 3 days or so? Doesn't change much.
@@ -165,34 +167,49 @@ fitC2 <- skygrowth.map(Clade2nex,
 )
 plot(fitC2)
 growth.plot(fitC2)+theme_bw()
+R.plot(fitC2, forward=TRUE, gamma=0.85)+theme_bw()+scale_x_reverse() 
 
 fitC3 <- skygrowth.map(Clade3nex,  
                        , res = 7*5  # Ne changes every 3 days or so? Doesn't change much.
                        , tau0 = .1    # Smoothing parameter. If prior is not specified, this will also set the scale of the prior
 )
 plot(fitC3)
-growth.plot(fitC3)
+growth.plot(fitC3)+scale_x_reverse() 
+R.plot(fitC3, forward=TRUE, gamma=0.95)+theme_bw()+scale_x_reverse() #this is too high 
+neplot(fitC3)
 
 #fit with mcmc - I get a different result here than with skygrid map. I'm laos struggling to check convergence
-mcmcfit_c1 <- skygrowth.mcmc(Clade1nex, res = 35, tau0=.1, mhsteps= 1e+07 ) #maybe 10 million?
+mcmcfit_c1 <- skygrowth.mcmc(Clade1nex, res = 35, tau0=.1, mhsteps= 2e+07 ) #maybe 20 million?
 growth.plot( mcmcfit_c1 )+theme_bw()
 
-#check mcmc diagnostics - not working as yet - not sure what parameters to assess in mcmcfit_c1 
-a1 <- as.mcmc(as.data.frame(mcmcfit_c1$growthrate))
-effectiveSize(a1)#time series length N, square  root{var x)}/n
+R.plot(mcmcfit_c1 , forward=TRUE, gamma=0.90)+theme_bw()# Maybe something from https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0230405
 
-#make a ggmcmc object
-#ggA <- ggs(a1)
-#HPDinterval(a1)
-#ggs_density(ggA)
-#ggs_traceplot(ggA)
+#check mcmc diagnostics -
+c1 <- as.mcmc(cbind(mcmcfit_c1$growthrate[,1:(ncol(mcmcfit_c1$growthrate)-1)],mcmcfit_c1$ne,mcmcfit_c1$tau))
+effectiveSize(c1)
 
-
-mcmcfit_c2 <- skygrowth.mcmc(Clade2nex, res = 35, tau0=.1, mhsteps= 1e+07 ) #not sure how to tune this
+#Lineage B
+mcmcfit_c2 <- skygrowth.mcmc(Clade2nex, res = 35, tau0=.1, mhsteps= 2e+07 ) #not sure how to tune this
 growth.plot( mcmcfit_c2 )+theme_bw()
+R.plot(mcmcfit_c2 , forward=TRUE, gamma=0.90)+theme_bw()
 
-mcmcfit_c3 <- skygrowth.mcmc(Clade3nex, res = 35, tau0=.1, mhsteps= 1e+07 ) #not sure how to tune this
+library(coda)
+c2 <- as.mcmc(cbind(mcmcfit_c2$growthrate[,1:(ncol(mcmcfit_c2$growthrate)-1)],mcmcfit_c2$ne,mcmcfit_c2$tau))
+effectiveSize(c2)
+
+tau_logprior = function (x) dexp(x,tauPriorMean,T)
+
+mcmcfit_c3 <- skygrowth.mcmc(Clade3nex, res = 35, tau0=0.1,tau_logprior = function (x) dexp(x,0.1,T), mhsteps= 4e+07, control=list(thin=1e5) ) #not sure how to tune this
 growth.plot( mcmcfit_c3 )+theme_bw()
+
+#check convergence
+
+c3 <- as.mcmc(cbind(mcmcfit_c3$growthrate[,1:(ncol(mcmcfit_c3$growthrate)-1)],mcmcfit_c3$ne,mcmcfit_c3$tau))
+effectiveSize(c3)
+
+save(c3, file="clade3_covid")
+load("clade3_covid")
+R.plot(mcmcfit_c3 , forward=TRUE, gamma=0.90)+theme_bw()
 
 str(mcmcfit_c3)
 
