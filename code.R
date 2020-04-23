@@ -1,6 +1,6 @@
 #COde to analyse differences in covid19 genomes
 
-#Written by Nick Fountain-Jones (nfj@umn.edu)
+#Written by Nick Fountain-Jones (Nick.FountainJones@utas.edu.au) and Xavier Didelot
 
 library(treeio)
 library(ggtree)
@@ -9,7 +9,6 @@ library(treestructure)
 library(phylodyn)# needs to options(buildtools.check = function(action) TRUE ) before installing from Git
 library(skygrowth)
 library(coda)
-library(ggmcmc)
 
 #------------------------------------------------------------------------
 ##################Visualize MCC Tree##################
@@ -115,7 +114,7 @@ Clade3_names <- as.data.frame(get_taxa_name(tree_view = NULL, node = NULL))
 
 
 #----------------------------
-#Effective population size for each clade
+#Effective population size esimates
 #---------------------------
 
 #overall - all clades included. lengthout means ne changes every 3 days or so
@@ -151,35 +150,31 @@ BSpsClade3a<- BNPR(Clade3nex, lengthout = 35, prec_alpha = 0.01, prec_beta = 0.0
 plot_BNPR(BSpsClade3a)
 
 
-# skygrowth BP
-fitC1 <- skygrowth.map(Clade1nex,  
-                     , res = 7*5  # Ne changes every 3 days or so?
-                     , tau0 = .1    # Smoothing parameter. If prior is not specified, this will also set the scale of the prior
-)
-plot(fitC1)
-growth.plot(fitC1, forward=TRUE)+theme_bw()+scale_x_reverse()
-R.plot(fitC1, forward=TRUE, gamma=0.85)+theme_bw()+scale_x_reverse() #no idea what gamma could be for COVID19
-neplot(fitC1) #increasing - but no surprise there. Very different to the phylofynn version
+#----------------------------
+#Skygrowth models
+#---------------------------
 
-fitC2 <- skygrowth.map(Clade2nex,  
-                       , res = 7*5  # Ne changes every 3 days or so? Doesn't change much.
-                       , tau0 = .1    # Smoothing parameter. If prior is not specified, this will also set the scale of the prior
-)
-plot(fitC2)
-growth.plot(fitC2)+theme_bw()
-R.plot(fitC2, forward=TRUE, gamma=0.85)+theme_bw()+scale_x_reverse() 
+#---------------------------
+#Global models (ie. using all sequences rather than partitions)
+#---------------------------
+#fit with mcmc  - similar results were found with the map verison
 
-fitC3 <- skygrowth.map(Clade3nex,  
-                       , res = 7*5  # Ne changes every 3 days or so? Doesn't change much.
-                       , tau0 = .1    # Smoothing parameter. If prior is not specified, this will also set the scale of the prior
-)
-plot(fitC3)
-growth.plot(fitC3)+scale_x_reverse() 
-R.plot(fitC3, forward=TRUE, gamma=0.95)+theme_bw()+scale_x_reverse() #this is too high 
-neplot(fitC3)
+globalgrowth <- skygrowth.mcmc(b, res = 35, tau0=0.1,tau_logprior = function (x) dexp(x,0.1,T), mhsteps= 2e+07, control=list(thin=1e3) ) 
 
-#fit with mcmc - I get a different result here than with skygrid map. I'm laos struggling to check convergence
-mcmcfit_c1 <- skygrowth.mcmc(Clade1nex, res = 35, tau0=.1, mhsteps= 2e+07 ) #maybe 20 million?
+growth.plot( globalgrowth)+theme_bw()
+
+R.plot(globalgrowth, forward=TRUE, gamma=0.90)+theme_bw()
+
+globalMCMC <- as.mcmc(cbind(globalgrowth$growthrate[,1:(ncol(globalgrowth$growthrate)-1)],globalgrowth$ne,globalgrowth$tau))
+effectiveSize(globalMCMC)
+save(globalgrowth$, file="global_covid")
+load("global_covid")
+
+#---------------------------
+#Lineage A
+#---------------------------
+
+mcmcfit_c1 <- skygrowth.mcmc(Clade1nex, res = 35, tau0=0.1,tau_logprior = function (x) dexp(x,0.1,T), mhsteps= 2e+07, control=list(thin=1e3) ) 
 growth.plot( mcmcfit_c1 )+theme_bw()
 
 R.plot(mcmcfit_c1 , forward=TRUE, gamma=0.90)+theme_bw()# Maybe something from https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0230405
@@ -188,16 +183,21 @@ R.plot(mcmcfit_c1 , forward=TRUE, gamma=0.90)+theme_bw()# Maybe something from h
 c1 <- as.mcmc(cbind(mcmcfit_c1$growthrate[,1:(ncol(mcmcfit_c1$growthrate)-1)],mcmcfit_c1$ne,mcmcfit_c1$tau))
 effectiveSize(c1)
 
+#---------------------------
 #Lineage B
-mcmcfit_c2 <- skygrowth.mcmc(Clade2nex, res = 35, tau0=.1, mhsteps= 2e+07 ) #not sure how to tune this
+#---------------------------
+
+mcmcfit_c2 <- skygrowth.mcmc(Clade2nex, res = 35, tau0=0.1,tau_logprior = function (x) dexp(x,0.1,T), mhsteps= 1e+07, control=list(thin=1e3) ) 
 growth.plot( mcmcfit_c2 )+theme_bw()
 R.plot(mcmcfit_c2 , forward=TRUE, gamma=0.90)+theme_bw()
 
-library(coda)
+
 c2 <- as.mcmc(cbind(mcmcfit_c2$growthrate[,1:(ncol(mcmcfit_c2$growthrate)-1)],mcmcfit_c2$ne,mcmcfit_c2$tau))
 effectiveSize(c2)
 
-tau_logprior = function (x) dexp(x,tauPriorMean,T)
+#---------------------------
+#Lineage C
+#---------------------------
 
 mcmcfit_c3 <- skygrowth.mcmc(Clade3nex, res = 35, tau0=0.1,tau_logprior = function (x) dexp(x,0.1,T), mhsteps= 4e+07, control=list(thin=1e5) ) #not sure how to tune this
 growth.plot( mcmcfit_c3 )+theme_bw()
@@ -214,7 +214,7 @@ R.plot(mcmcfit_c3 , forward=TRUE, gamma=0.90)+theme_bw()
 str(mcmcfit_c3)
 
 #----------------------------
-#Extracting sequences from each clade
+#Extracting sequences from each clade - not used in the manuscript 
 #---------------------------
 library(ggmsa)
 library(Biostrings) 
@@ -286,3 +286,9 @@ head(fresult)
 ex.dna <- read.dna("covid_alignment.fasta", format = "fasta")
 names(ex.dna)
 ggmsa(ex.dna) , color = "Chemistry_NT")
+
+#converting dates
+
+x <- c(2020.2, 2020.1, 2019.9, 2019.8, 2019.7, 2019.6, 2019.5 )
+library(lubridate)
+(f <- format(date_decimal(x), "%d-%m-%Y"))
