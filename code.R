@@ -9,6 +9,7 @@ library(treestructure)
 library(phylodyn)# needs to options(buildtools.check = function(action) TRUE ) before installing from Git
 library(skygrowth)
 library(coda)
+library(ape)
 
 #------------------------------------------------------------------------
 ##################Visualize MCC Tree##################
@@ -36,13 +37,94 @@ p1
 #can isolate particular sections of the tree
 viewClade(ph+geom_tiplab(size=2), node=764)
 
+#------------------------------------------------------------------------
+##################Treedater method##################
+#------------------------------------------------------------------------
+
+library(treedater)
+library(lubridate)
+# first we need an unrooted maximum likelihood undated tree. We used PhyML ot generate this tree
+
+tr<-unroot(read.tree('PhyMLtree'))
+plot(tr)
+
+#resolved polytomies
+trNoPoly <- multi2di(tr, random = TRUE) # getting weird resuls. I guess this wasn't what you were suggesting Erik?
+
+# I guess this could be needed  -really not sure?
+#trNoPoly $edge.length <- trNoPoly $edge.length * 1e-3
+
+plot(trNoPoly,no.mar=T, cex = .2 )
+
+RIGHT = function(x,n){
+  substring(x,nchar(x)-n+1)
+}
+# second we need a named vector containing the dates of the genomes in decimal years. assuming this is contained as a suffix of the tip labels, we can extract this using:
+
+dates<-ymd(RIGHT(tr$tip.label, 10))
+dateD <- decimal_date(dates)
+names(dateD)<-tr$tip.label
+
+# third we need in the alignment length
+l<-29442
+
+#test for relaxed clock
+rctest <- relaxedClockTest(tr, dateD,l, nreps = 100, overrideTempConstraint = T,
+                 ncpu = 1) #looks like uncorrelated clock is best supported?
+
+
+# finally we can run treedater and print the result. I kept the strict clock as I was skeptical there was enough signal for a relaxed clock.
+resNoPoly<-dater( trNoPoly, dateD, l)
+plot(resNoPoly, no.mar=T, cex = .2 ) #weird results - substitutino rate too small?
+rootToTipRegressionPlot(resNoPoly) #yuck
+
+pb <- parboot(resresNoPoly, ncpu = 1, nreps = 100) #lineage dating way too early.
+plot(pb)
+
+resPoly <-dater( tr, dateD, l) #with polytomies
+plot(resPoly, no.mar=T, cex = .2 )
+rootToTipRegressionPlot(resPoly)
+
+str(resPoly)
+writeNexus(resPoly, "test1.nex")
+
+par(mfrow=c(1,1))
+goodnessOfFitPlot(resPoly) # not sure how to interpret this. 
+
+print(resPoly)
+str(resPoly)
+
+pbwPoly <- parboot(resPoly, ncpu = 1, nreps = 100) #these results make sense. Takes 4 hours to run
+plot(pbwPoly, ggplot=TRUE)
+
+str(pbwPoly)
+#plot treeDater object
+#can see node numbers
+
+#belwo isn't working yet
+phTT <- ggtree(resPoly) + geom_tiplab(size=2)+ geom_text2(aes(subset=!isTip, label=node), hjust=-.3) 
+phTT  
+
+
+
+#add branch lengths etc
+p1 <- ggtree(beast , mrsd="2020-03-24") + theme_tree2()+ 
+  #geom_tiplab(align=FALSE, linetype='dashed', linesize=0.5, size=1) +  
+  #geom_range("length_0.95_HPD", color='red', size=2, alpha=.5) + #gets length estimates 
+  geom_text2(aes(label=round(as.numeric(posterior), 2), 
+                 subset=as.numeric(posterior)> 0.8, 
+                 x=branch), vjust=0)
+p1
+
+#can isolate particular sections of the tree
+viewClade(ph+geom_tiplab(size=2), node=764)
 
 #------------------------------------------------------------------------
 ##################look for non-random tree structure using treestructure (Volz et al)##################
 #------------------------------------------------------------------------
 
 #try min 10 for clade size 
-treeSt <-  trestruct(b, minCladeSize = 150, minOverlap = -Inf, nsim = 10000, #100000 didn't change anythin
+treeSt <-  trestruct(resPoly, minCladeSize = 150, minOverlap = -Inf, nsim = 10000, #100000 didn't change anythin
                      level = 0.05, ncpu = 1, verbosity = 1) 
 #20 gets 12 groups - too many?
   #50-200 stable 3 groups. >200 1 group (nearly 50% of the sequences)
@@ -289,6 +371,6 @@ ggmsa(ex.dna) , color = "Chemistry_NT")
 
 #converting dates
 
-x <- c(2020.2, 2020.1, 2019.9, 2019.8, 2019.7, 2019.6, 2019.5 )
+x <- c(2019.862)
 library(lubridate)
 (f <- format(date_decimal(x), "%d-%m-%Y"))
