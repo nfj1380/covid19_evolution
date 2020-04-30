@@ -260,6 +260,7 @@ load("global_covid")
 
 mcmcfit_c1 <- skygrowth.mcmc(Clade1nex, res = 35, tau0=0.1,tau_logprior = function (x) dexp(x,0.1,T), mhsteps= 1e+07, control=list(thin=1e3) ) 
 growth.plot( mcmcfit_c1 )+theme_bw()
+neplot(mcmcfit_c1 )+theme_bw()
 
 R.plot(mcmcfit_c1 , forward=TRUE, gamma=0.90)+theme_bw()# Maybe something from https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0230405
 
@@ -275,6 +276,7 @@ mcmcfit_c2 <- skygrowth.mcmc(Clade2nex, res = 35, tau0=0.1,tau_logprior = functi
 growth.plot( mcmcfit_c2 )+theme_bw()
 R.plot(mcmcfit_c2 , forward=TRUE, gamma=0.90)+theme_bw()
 
+neplot(mcmcfit_c2 )+theme_bw()
 
 c2 <- as.mcmc(cbind(mcmcfit_c2$growthrate[,1:(ncol(mcmcfit_c2$growthrate)-1)],mcmcfit_c2$ne,mcmcfit_c2$tau))
 effectiveSize(c2)
@@ -283,13 +285,17 @@ effectiveSize(c2)
 #Lineage C
 #---------------------------
 
-mcmcfit_c3 <- skygrowth.mcmc(Clade3nex, res = 35, tau0=0.1,tau_logprior = function (x) dexp(x,0.1,T), mhsteps= 6e+07, control=list(thin=1e5) ) #not sure how to tune this
+c3 <- skygrowth.map(Clade3nex, res = 10, tau0=0.1,tau_logprior = function (x) dexp(x,0.1,T)) #try res = 10 as more recent
+growth.plot( c3 )+theme_bw()
+
+mcmcfit_c3 <- skygrowth.mcmc(Clade3nex, res = 10, tau0=0.1,tau_logprior = function (x) dexp(x,0.1,T), mhsteps= 6e+07, control=list(thin=1e5) ) #not sure how to tune this
 growth.plot( mcmcfit_c3 )+theme_bw()
+neplot(mcmcfit_c3 )+theme_bw()
 
 #check convergence
 
-c3 <- as.mcmc(cbind(mcmcfit_c3$growthrate[,1:(ncol(mcmcfit_c3$growthrate)-1)],mcmcfit_c3$ne,mcmcfit_c3$tau))
-effectiveSize(c3)
+c3mcmc <- as.mcmc(cbind(mcmcfit_c3$growthrate[,1:(ncol(mcmcfit_c3$growthrate)-1)],mcmcfit_c3$ne,mcmcfit_c3$tau))
+effectiveSize(c3mcmc)
 
 save(c3, file="clade3_covid")
 load("clade3_covid")
