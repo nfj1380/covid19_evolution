@@ -85,8 +85,7 @@ resPoly <-dater( tr, dateD, l) #with polytomies
 plot(resPoly, no.mar=T, cex = .2 )
 rootToTipRegressionPlot(resPoly)
 
-str(resPoly)
-writeNexus(resPoly, "test1.nex")
+class(resPoly) <- 'phylo'
 
 par(mfrow=c(1,1))
 goodnessOfFitPlot(resPoly) # not sure how to interpret this. 
@@ -137,13 +136,13 @@ plot(treeSt, use_ggtree = TRUE)
 #---------------------------
 
 
-tokeepc1<-setdiff(b$tip.label,names(treeSt$clustering)[which(treeSt$clustering==2)])
-Clade1nex<-drop.tip(b,tokeepc1)
+tokeepc1<-setdiff(resPoly$tip.label,names(treeSt$clustering)[which(treeSt$clustering==2)])
+Clade1nex<-drop.tip(resPoly,tokeepc1)
 Clade1<-drop.tip(beast,substr(tokeepc1,2,nchar(tokeepc1)-1))
 
 
 # going forward in the tree to remove weird outliers
-ggtree(Clade1) + geom_tiplab(size=2)+ geom_text2(aes(subset=!isTip, label=node), hjust=-.3) 
+ggtree(Clade1nex) + geom_tiplab(size=2)+ geom_text2(aes(subset=!isTip, label=node), hjust=-.3) 
 
 pc1 <- ggtree(Clade1, mrsd="2020-03-24") + theme_tree2()+ 
   geom_tiplab(align=FALSE, linetype='dashed', linesize=0.5, size=1) +  
@@ -157,10 +156,10 @@ Clade1_names <- as.data.frame(get_taxa_name(tree_view = NULL, node = NULL))
 
 #clade 2
 
-tokeep<-setdiff(b$tip.label,names(treeSt$clustering)[which(treeSt$clustering==3)])
+tokeepc2<-setdiff(resPoly$tip.label,names(treeSt$clustering)[which(treeSt$clustering==3)])
 
-Clade2nex<-drop.tip(b,tokeep)
-Clade2<-drop.tip(beast,substr(tokeep,2,nchar(tokeep)-1))
+Clade2nex<-drop.tip(resPoly,tokeep)
+Clade2<-drop.tip(beast,substr(tokeepc2,2,nchar(tokeep)-1))
 
 #basic tree
 ggtree(Clade2nex) + geom_tiplab(size=2)+ geom_text2(aes(subset=!isTip, label=node), hjust=-.3) 
@@ -182,6 +181,9 @@ Clade2_names$seq <- gsub(("'"), (""), Clade1_names$seq)
 Clade3 <- tree_subset(beast , node=820,levels_back = 0) 
 Clade3nex <- tree_subset(b, node=820,levels_back = 0)#useful for analyses below
 
+tokeepc3<-setdiff(resPoly$tip.label,names(treeSt$clustering)[which(treeSt$clustering==1)])
+Clade3nex<-drop.tip(resPoly,tokeepc3)
+
 ggtree(Clade3nex) + geom_tiplab(size=2)+ geom_text2(aes(subset=!isTip, label=node), hjust=-.3) #complete tree
 
 pc3 <- ggtree(Clade3, mrsd="2020-03-24") + theme_tree2()+ 
@@ -201,7 +203,7 @@ Clade3_names <- as.data.frame(get_taxa_name(tree_view = NULL, node = NULL))
 
 #overall - all clades included. lengthout means ne changes every 3 days or so
 
-GlobalBSP <- BNPR(b, lengthout = 35, prec_alpha = 0.01, prec_beta = 0.01,
+GlobalBSP <- BNPR(resPoly, lengthout = 35, prec_alpha = 0.01, prec_beta = 0.01,
                    beta1_prec = 0.001, fns = NULL, log_fns = TRUE, simplify = TRUE,
                    derivative = FALSE, forward = TRUE)
 
@@ -241,7 +243,7 @@ plot_BNPR(BSpsClade3a)
 #---------------------------
 #fit with mcmc  - similar results were found with the map verison
 
-globalgrowth <- skygrowth.mcmc(b, res = 35, tau0=0.1,tau_logprior = function (x) dexp(x,0.1,T), mhsteps= 2e+07, control=list(thin=1e3) ) 
+globalgrowth <- skygrowth.mcmc(resPoly, res = 35, tau0=0.1,tau_logprior = function (x) dexp(x,0.1,T), mhsteps= 2e+07, control=list(thin=1e3) ) 
 
 growth.plot( globalgrowth)+theme_bw()
 
@@ -256,7 +258,7 @@ load("global_covid")
 #Lineage A
 #---------------------------
 
-mcmcfit_c1 <- skygrowth.mcmc(Clade1nex, res = 35, tau0=0.1,tau_logprior = function (x) dexp(x,0.1,T), mhsteps= 2e+07, control=list(thin=1e3) ) 
+mcmcfit_c1 <- skygrowth.mcmc(Clade1nex, res = 35, tau0=0.1,tau_logprior = function (x) dexp(x,0.1,T), mhsteps= 1e+07, control=list(thin=1e3) ) 
 growth.plot( mcmcfit_c1 )+theme_bw()
 
 R.plot(mcmcfit_c1 , forward=TRUE, gamma=0.90)+theme_bw()# Maybe something from https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0230405
@@ -281,7 +283,7 @@ effectiveSize(c2)
 #Lineage C
 #---------------------------
 
-mcmcfit_c3 <- skygrowth.mcmc(Clade3nex, res = 35, tau0=0.1,tau_logprior = function (x) dexp(x,0.1,T), mhsteps= 4e+07, control=list(thin=1e5) ) #not sure how to tune this
+mcmcfit_c3 <- skygrowth.mcmc(Clade3nex, res = 35, tau0=0.1,tau_logprior = function (x) dexp(x,0.1,T), mhsteps= 6e+07, control=list(thin=1e5) ) #not sure how to tune this
 growth.plot( mcmcfit_c3 )+theme_bw()
 
 #check convergence
