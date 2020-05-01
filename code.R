@@ -78,7 +78,7 @@ resNoPoly<-dater( trNoPoly, dateD, l)
 plot(resNoPoly, no.mar=T, cex = .2 ) #weird results - substitutino rate too small?
 rootToTipRegressionPlot(resNoPoly) #yuck
 
-pb <- parboot(resresNoPoly, ncpu = 1, nreps = 100) #lineage dating way too early.
+pb <- parboot(resPoly, ncpu = 1, nreps = 100) #lineage dating way too early.
 plot(pb)
 
 resPoly <-dater( tr, dateD, l) #with polytomies
@@ -93,37 +93,23 @@ goodnessOfFitPlot(resPoly) # not sure how to interpret this.
 print(resPoly)
 str(resPoly)
 
-pbwPoly <- parboot(resPoly, ncpu = 1, nreps = 100) #these results make sense. Takes 4 hours to run
+pbwPoly <- parboot(resPoly, ncpu = 1, nreps = 10) #these results make sense. Takes 4 hours to run
+par(mar=c(5.1,4.1,4.1,2.1))
 plot(pbwPoly, ggplot=TRUE)
 
+# whats the easiest way to sumamrize the trees?
 str(pbwPoly)
 #plot treeDater object
 #can see node numbers
 
-#belwo isn't working yet
-phTT <- ggtree(resPoly) + geom_tiplab(size=2)+ geom_text2(aes(subset=!isTip, label=node), hjust=-.3) 
-phTT  
-
-
-
-#add branch lengths etc
-p1 <- ggtree(beast , mrsd="2020-03-24") + theme_tree2()+ 
-  #geom_tiplab(align=FALSE, linetype='dashed', linesize=0.5, size=1) +  
-  #geom_range("length_0.95_HPD", color='red', size=2, alpha=.5) + #gets length estimates 
-  geom_text2(aes(label=round(as.numeric(posterior), 2), 
-                 subset=as.numeric(posterior)> 0.8, 
-                 x=branch), vjust=0)
-p1
-
-#can isolate particular sections of the tree
-viewClade(ph+geom_tiplab(size=2), node=764)
+# do do I get access to node level date estimates?
 
 #------------------------------------------------------------------------
 ##################look for non-random tree structure using treestructure (Volz et al)##################
 #------------------------------------------------------------------------
 
 #try min 10 for clade size 
-treeSt <-  trestruct(resPoly, minCladeSize = 150, minOverlap = -Inf, nsim = 10000, #100000 didn't change anythin
+treeSt <-  trestruct(resPoly, minCladeSize = 150, minOverlap = -Inf, nsim = 10000,
                      level = 0.05, ncpu = 1, verbosity = 1) 
 #20 gets 12 groups - too many?
   #50-200 stable 3 groups. >200 1 group (nearly 50% of the sequences)
@@ -132,12 +118,14 @@ treeSt_df <- as.data.frame(treeSt)
 plot(treeSt, use_ggtree = TRUE)
 
 #----------------------------
-#subset tree - went with three groups 
+#subset tree - to three lineages and plot each linage
 #---------------------------
 
+#Lineage A
 
-tokeepc1<-setdiff(resPoly$tip.label,names(treeSt$clustering)[which(treeSt$clustering==2)])
+tokeepc1<-setdiff(resPoly$tip.label,names(treeSt$clustering)[which(treeSt$clustering==2)]) 
 Clade1nex<-drop.tip(resPoly,tokeepc1)
+#for BEAST tre file
 Clade1<-drop.tip(beast,substr(tokeepc1,2,nchar(tokeepc1)-1))
 
 
@@ -154,16 +142,17 @@ pc1
 
 Clade1_names <- as.data.frame(get_taxa_name(tree_view = NULL, node = NULL))
 
-#clade 2
+#Lineage 2
 
 tokeepc2<-setdiff(resPoly$tip.label,names(treeSt$clustering)[which(treeSt$clustering==3)])
 
-Clade2nex<-drop.tip(resPoly,tokeep)
+Clade2nex<-drop.tip(resPoly,tokeepc2)
+#for BEAST tre file
 Clade2<-drop.tip(beast,substr(tokeepc2,2,nchar(tokeep)-1))
 
 #basic tree
 ggtree(Clade2nex) + geom_tiplab(size=2)+ geom_text2(aes(subset=!isTip, label=node), hjust=-.3) 
-#more annotation added
+#more annotation added from BEAST
 pc2 <- ggtree(Clade2, mrsd="2020-03-24") + theme_tree2()+ 
   geom_tiplab(align=FALSE, linetype='dashed', linesize=0.5, size=1) +  
   geom_range("length_0.95_HPD", color='red', size=2, alpha=.5, nodes=730) + #gets length estimates 
@@ -177,131 +166,131 @@ Clade2_names$seq <- as.factor(Clade1_names$seq)
 
 Clade2_names$seq <- gsub(("'"), (""), Clade1_names$seq)
 
-
-Clade3 <- tree_subset(beast , node=820,levels_back = 0) 
-Clade3nex <- tree_subset(b, node=820,levels_back = 0)#useful for analyses below
+#Lineage 3
 
 tokeepc3<-setdiff(resPoly$tip.label,names(treeSt$clustering)[which(treeSt$clustering==1)])
 Clade3nex<-drop.tip(resPoly,tokeepc3)
 
 ggtree(Clade3nex) + geom_tiplab(size=2)+ geom_text2(aes(subset=!isTip, label=node), hjust=-.3) #complete tree
 
-pc3 <- ggtree(Clade3, mrsd="2020-03-24") + theme_tree2()+ 
+pc3 <- ggtree(Clade3nex, mrsd="2020-03-24") + theme_tree2()+ 
   geom_tiplab(align=FALSE, linetype='dashed', linesize=0.5, size=1) +  
-  geom_range("length_0.95_HPD", color='red', size=2, alpha=.5, nodes=730) + #gets length estimates 
-  geom_text2(aes(label=round(as.numeric(posterior), 2), 
-                 subset=as.numeric(posterior)> 0.9, 
-                 x=branch), vjust=0)
+  #geom_range("length_0.95_HPD", color='red', size=2, alpha=.5, nodes=730) + #gets length estimates 
+  #geom_text2(aes(label=round(as.numeric(posterior), 2), 
+                 #subset=as.numeric(posterior)> 0.9, 
+                 #x=branch), vjust=0)
 pc3
 
 Clade3_names <- as.data.frame(get_taxa_name(tree_view = NULL, node = NULL))
 
+#------------------------------------------------------------------------
+##################Skygrowth models and phylodynn effective pop size##################
+#------------------------------------------------------------------------
 
-#----------------------------
-#Effective population size esimates
-#---------------------------
-
-#overall - all clades included. lengthout means ne changes every 3 days or so
-
-GlobalBSP <- BNPR(resPoly, lengthout = 35, prec_alpha = 0.01, prec_beta = 0.01,
-                   beta1_prec = 0.001, fns = NULL, log_fns = TRUE, simplify = TRUE,
-                   derivative = FALSE, forward = TRUE)
-
-plot_BNPR(GlobalBSP)
-
-#ps helps account for preferential sampling -not needed in this case as sampling has been consistent enough?
-
-BSpsClade1<- BNPR_PS(Clade1nex, lengthout = 35, prec_alpha = 0.01, prec_beta = 0.01, #lenghout
-                     beta1_prec = 0.001, fns = NULL, log_fns = TRUE, simplify = TRUE,
-                     derivative = FALSE, forward = TRUE) #with pref sampling
-BSpsClade1a<- BNPR(Clade1nex, lengthout = 35, prec_alpha = 0.01, prec_beta = 0.01,
-                   beta1_prec = 0.001, fns = NULL, log_fns = TRUE, simplify = TRUE,
-                   derivative = FALSE, forward = TRUE)
-
-plot_BNPR(BSpsClade1)
-plot_BNPR(BSpsClade1a)
-
-BSpsClade2a<- BNPR(Clade2nex, lengthout = 35, prec_alpha = 0.01, prec_beta = 0.01, #lengthout = number of grid points
-                     beta1_prec = 0.001, fns = NULL, log_fns = TRUE, simplify = TRUE,
-                     derivative = FALSE, forward = TRUE)
-
-plot_BNPR(BSpsClade2a)
-
-BSpsClade3a<- BNPR(Clade3nex, lengthout = 35, prec_alpha = 0.01, prec_beta = 0.01,
-                     beta1_prec = 0.001, fns = NULL, log_fns = TRUE, simplify = TRUE,
-                     derivative = FALSE, forward = TRUE)
-
-plot_BNPR(BSpsClade3a)
-
-
-#----------------------------
-#Skygrowth models
-#---------------------------
-
-#---------------------------
+#--------------------------------------------------------------
 #Global models (ie. using all sequences rather than partitions)
-#---------------------------
-#fit with mcmc  - similar results were found with the map verison
+#--------------------------------------------------------------
 
-globalgrowth <- skygrowth.mcmc(resPoly, res = 35, tau0=0.1,tau_logprior = function (x) dexp(x,0.1,T), mhsteps= 2e+07, control=list(thin=1e3) ) 
+maplGlobal <- skygrowth.map(resPoly, res = 35, tau0=0.1,tau_logprior = function (x) dexp(x,0.1,T)) #res=35
 
-growth.plot( globalgrowth)+theme_bw()
+globalgrowth <- skygrowth.mcmc(resPoly, res = 35, tau0=0.1,tau_logprior = function (x) dexp(x,0.1,T), mhste5ps= 2e+07, control=list(thin=1e3) ) 
 
-R.plot(globalgrowth, forward=TRUE, gamma=0.90)+theme_bw()
-
+#check convergence
 globalMCMC <- as.mcmc(cbind(globalgrowth$growthrate[,1:(ncol(globalgrowth$growthrate)-1)],globalgrowth$ne,globalgrowth$tau))
 effectiveSize(globalMCMC)
-save(globalgrowth$, file="global_covid")
+
+#plots
+growth.plot(maplGlobal)+theme_bw()
+growth.plot( globalgrowth)+theme_bw()
+neplot(mcmcfit_c1 )+theme_bw()
+R.plot(globalgrowth, forward=TRUE, gamma=0.90)+theme_bw()
+
+#save files
+save(globalgrowth, file="global_covid")
 load("global_covid")
+
+#compare to phylodyn
+GlobalBSP <- BNPR(resPoly, lengthout = 35, prec_alpha = 0.01, prec_beta = 0.01,
+                  beta1_prec = 0.001, fns = NULL, log_fns = TRUE, simplify = TRUE,
+                  derivative = FALSE, forward = TRUE)
 
 #---------------------------
 #Lineage A
 #---------------------------
 
-mcmcfit_c1 <- skygrowth.mcmc(Clade1nex, res = 35, tau0=0.1,tau_logprior = function (x) dexp(x,0.1,T), mhsteps= 1e+07, control=list(thin=1e3) ) 
+mcmcfit_c1 <- skygrowth.mcmc(Clade1nex, res = 35, tau0=0.1,tau_logprior = function (x) dexp(x,0.1,T), mhsteps= 1e+07, control=list(thin=1e3) ) #I get quite different results with this compared to the mcc
 growth.plot( mcmcfit_c1 )+theme_bw()
 neplot(mcmcfit_c1 )+theme_bw()
 
-R.plot(mcmcfit_c1 , forward=TRUE, gamma=0.90)+theme_bw()# Maybe something from https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0230405
+R.plot(mcmcfit_c1 , forward=TRUE, gamma=0.90)+theme_bw()# Maybe something from https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0230405. Doesn't seem to be realistic though
 
 #check mcmc diagnostics -
 c1 <- as.mcmc(cbind(mcmcfit_c1$growthrate[,1:(ncol(mcmcfit_c1$growthrate)-1)],mcmcfit_c1$ne,mcmcfit_c1$tau))
 effectiveSize(c1)
 
+#compare to phylodynn
+BSpsLin1<- BNPR(Clade1nex, lengthout = 35, prec_alpha = 0.01, prec_beta = 0.01,
+                   beta1_prec = 0.001, fns = NULL, log_fns = TRUE, simplify = TRUE,
+                   derivative = FALSE, forward = TRUE)
+
+plot_BNPR(BSpsLin1)
+
 #---------------------------
 #Lineage B
 #---------------------------
 
-mcmcfit_c2 <- skygrowth.mcmc(Clade2nex, res = 35, tau0=0.1,tau_logprior = function (x) dexp(x,0.1,T), mhsteps= 1e+07, control=list(thin=1e3) ) 
-growth.plot( mcmcfit_c2 )+theme_bw()
-R.plot(mcmcfit_c2 , forward=TRUE, gamma=0.90)+theme_bw()
+mapl2 <- skygrowth.map(Clade2nex, res = 35, tau0=0.1,tau_logprior = function (x) dexp(x,0.1,T)) 
 
-neplot(mcmcfit_c2 )+theme_bw()
+mcmcfit_l2 <- skygrowth.mcmc(Clade2nex, res = 35, tau0=0.1,tau_logprior = function (x) dexp(x,0.1,T), mhsteps= 1e+07, control=list(thin=1e3) ) 
+growth.plot( mcmcfit_l2 )+theme_bw()
 
-c2 <- as.mcmc(cbind(mcmcfit_c2$growthrate[,1:(ncol(mcmcfit_c2$growthrate)-1)],mcmcfit_c2$ne,mcmcfit_c2$tau))
-effectiveSize(c2)
+#check convergence
+l2mcmc <- as.mcmc(cbind(mcmcfit_l2$growthrate[,1:(ncol(mcmcfit_l2$growthrate)-1)],mcmcfit_cl$ne,mcmcfit_l2$tau))
+effectiveSize(l2mcmc )
+
+#Plots
+neplot(mcmcfit_l2)+theme_bw()
+growth.plot(mapl2)+theme_bw()
+growth.plot(v)+theme_bw()
+
+#compare with Phylodynn
+BSpsLin2<- BNPR(Clade2nex, lengthout = 35, prec_alpha = 0.01, prec_beta = 0.01, #lengthout = number of grid points
+                   beta1_prec = 0.001, fns = NULL, log_fns = TRUE, simplify = TRUE,
+                   derivative = FALSE, forward = TRUE)
+
+plot_BNPR(BSpsLin2)
+
 
 #---------------------------
 #Lineage C
 #---------------------------
 
-c3 <- skygrowth.map(Clade3nex, res = 10, tau0=0.1,tau_logprior = function (x) dexp(x,0.1,T)) #try res = 10 as more recent
-growth.plot( c3 )+theme_bw()
+mapl3 <- skygrowth.map(Clade3nex, res = 35, tau0=0.1,tau_logprior = function (x) dexp(x,0.1,T)) #try res = 10 as more recent
 
-mcmcfit_c3 <- skygrowth.mcmc(Clade3nex, res = 10, tau0=0.1,tau_logprior = function (x) dexp(x,0.1,T), mhsteps= 6e+07, control=list(thin=1e5) ) #not sure how to tune this
-growth.plot( mcmcfit_c3 )+theme_bw()
-neplot(mcmcfit_c3 )+theme_bw()
+mcmcfit_l3 <- skygrowth.mcmc(Lineage3, res = 10, tau0=0.1,tau_logprior = function (x) dexp(x,0.1,T), mhsteps= 5e+07, control=list(thin=1e5) ) #was not converging with 35 grid points.  oved it back to 10 and it works
 
 #check convergence
 
-c3mcmc <- as.mcmc(cbind(mcmcfit_c3$growthrate[,1:(ncol(mcmcfit_c3$growthrate)-1)],mcmcfit_c3$ne,mcmcfit_c3$tau))
+l3mcmc <- as.mcmc(cbind(mcmcfit_l3$growthrate[,1:(ncol(mcmcfit_l3$growthrate)-1)],mcmcfit_cl$ne,mcmcfit_l3$tau))
 effectiveSize(c3mcmc)
 
-save(c3, file="clade3_covid")
-load("clade3_covid")
-R.plot(mcmcfit_c3 , forward=TRUE, gamma=0.90)+theme_bw()
+save(mcmcfit_c3 , file="Lineage3_covid")
+load("Lineage3_covid")
 
-str(mcmcfit_c3)
+#Plots
+growth.plot( mapl3  )+theme_bw()
+growth.plot( mcmcfit_l3 )+theme_bw()
+neplot(mcmcfit_l3 )+theme_bw()
+
+# compare to phylodynn
+
+BSpsLi3<- BNPR(Clade3nex, lengthout = 10, prec_alpha = 0.01, prec_beta = 0.01,
+                   beta1_prec = 0.001, fns = NULL, log_fns = TRUE, simplify = TRUE,
+                   derivative = FALSE, forward = TRUE)
+par(mar=c(5.1,4.1,4.1,2.1))
+plot_BNPR(BSpsLi3)
+
+
 
 #----------------------------
 #Extracting sequences from each clade - not used in the manuscript 
