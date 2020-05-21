@@ -24,6 +24,9 @@ library(lubridate)
 tr<-unroot(read.tree('covid_alignment_refinedUpdatedBeligiumSNPs_noErrrorsB.fasta.treefile'))
 plot(tr)
 
+#rooted version
+tre <- read.tree('covid_alignment_refinedUpdatedBeligiumSNPs_noErrrorsB.fasta.treefile')
+
 RIGHT = function(x,n){
   substring(x,nchar(x)-n+1)
 }
@@ -119,11 +122,15 @@ Clade3_names <- as.data.frame(get_taxa_name(tree_view = NULL, node = NULL))
 
 #test if A/B different from each other
 
-treestructure.test(resPoly, tokeepc2, tokeepc1, nsim = 10000)
-str(resPoly)
-is.rooted(resPoly)
-is.binary(resPoly)
+t1 <- treestructure.test(resPoly, tokeepc1, tokeepc2, nsim = 100000)
+t1
+#test if A/C different from each other
 
+t2 <- treestructure.test(resPoly, tokeepc1, tokeepc3, nsim = 100000)
+t2
+#test if A/B different from each other
+t3 <- treestructure.test(resPoly, tokeepc2, tokeepc3, nsim = 100000)
+t3
 
 #------------------------------------------------------------------------
 ##################Skygrowth models and phylodynn effective pop size##################
