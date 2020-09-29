@@ -1,8 +1,8 @@
 #------------------------------------------------------------------------
-#COde to analyse differences in SARS-coV2 genomes
+#Code to analyse differences in SARS-coV2 genomes
 #------------------------------------------------------------------------
 
-#Written by Nick Fountain-Jones (Nick.FountainJones@utas.edu.au) with help from Xavier Didelot and Erik VOlz
+#Written by Nick Fountain-Jones (Nick.FountainJones@utas.edu.au) with help from Xavier Didelot and Erik Volz
 
 library(treeio)
 library(ggtree)
@@ -14,6 +14,8 @@ library(coda)
 library(ape)
 library(treedater)
 library(lubridate)
+library(picante)
+
 
 #------------------------------------------------------------------------
 ##################Treedater method##################
@@ -41,7 +43,7 @@ l<-29442
 
 #test for relaxed clock
 rctest <- relaxedClockTest(tr, dateD,l, nreps = 100, overrideTempConstraint = T,
-                 ncpu = 1) #uncorrelated clock is best supported
+                           ncpu = 1) #uncorrelated clock is best supported
 print(rctest )
 
 resPoly <-dater( tr, dateD, l, clock = c("uncorrelated")) 
@@ -83,7 +85,7 @@ plot(treeSt, use_ggtree = TRUE) #overlay these gruops on the tree
 BEASTtre <-read.nexus('covid_alignment_refinedUpdatedrelaxedClock2.tre')
 ggtree(BEASTtre) + geom_tiplab(size=3)
 treeStBEAST <-  trestruct(BEASTtre , minCladeSize = 100, minOverlap = -Inf, nsim = 10000,
-                     level = 0.05, ncpu = 1, verbosity = 1) 
+                          level = 0.05, ncpu = 1, verbosity = 1) 
 
 
 plot(treeStBEAST, use_ggtree = TRUE) 
@@ -176,42 +178,42 @@ MultiPhyloTreeStructure <- function(beastSub, minCladeSize = 145, minOverlap = -
                                     level = 0.05, ncpu = 1, verbosity = 1){
   
   lp <- length(beastSub)
-
+  
   
   lapply(lapply(seq(1, lp), function(phy){
     
     treeSt <- trestruct(beastSubset[[phy]], minCladeSize = minCladeSize, minOverlap = minOverlap, nsim = nsim,
-              level =  level, ncpu = ncpu, verbosity = verbosity )
+                        level =  level, ncpu = ncpu, verbosity = verbosity )
     
     treeSt 
     #treeSt_df <- as.data.frame(treeSt)
     
     #plot(treeSt, use_ggtree = TRUE) #overlay these gruops on the tree
-    }))
+  }))
 }  
 #--------------------------------------------------
 
- mTS <- MultiPhyloTreeStructure(beastSubset, minCladeSize = 150, minOverlap = -Inf, nsim = 1000,
-                                level = 0.1, ncpu = 1, verbosity = 1) #not working properly but works enough
- #Error in match.fun(FUN) : argument "FUN" is missing, with no default 
- 
- #look at some individual trees in the posterior and plot
- treeSt1 <- trestruct(beastSubset[[100]], minCladeSize = 150, minOverlap = -Inf, nsim = 10000,
-                      level = 0.05, ncpu = 1, verbosity = 1) 
- plot(treeSt1)
- 
- treeSt2 <- trestruct(beastSubset[[99]], minCladeSize = 150, minOverlap = -Inf, nsim = 10000,
-                      level = 0.05, ncpu = 1, verbosity = 1) 
- plot(treeSt2)
- 
- treeSt3 <- trestruct(beastSubset[[2]], minCladeSize = 150, minOverlap = -Inf, nsim = 10000,
-                      level = 0.05, ncpu = 1, verbosity = 1) 
- plot(treeSt3)
- 
- treeSt4 <- trestruct(beastSubset[[6]], minCladeSize = 150, minOverlap = -Inf, nsim = 10000,
-                      level = 0.05, ncpu = 1, verbosity = 1) 
- plot(treeSt4)
- #problem is that node label vary with each iteration...
+mTS <- MultiPhyloTreeStructure(beastSubset, minCladeSize = 150, minOverlap = -Inf, nsim = 1000,
+                               level = 0.1, ncpu = 1, verbosity = 1) #not working properly but works enough
+#Error in match.fun(FUN) : argument "FUN" is missing, with no default 
+
+#look at some individual trees in the posterior and plot
+treeSt1 <- trestruct(beastSubset[[100]], minCladeSize = 150, minOverlap = -Inf, nsim = 10000,
+                     level = 0.05, ncpu = 1, verbosity = 1) 
+plot(treeSt1)
+
+treeSt2 <- trestruct(beastSubset[[99]], minCladeSize = 150, minOverlap = -Inf, nsim = 10000,
+                     level = 0.05, ncpu = 1, verbosity = 1) 
+plot(treeSt2)
+
+treeSt3 <- trestruct(beastSubset[[2]], minCladeSize = 150, minOverlap = -Inf, nsim = 10000,
+                     level = 0.05, ncpu = 1, verbosity = 1) 
+plot(treeSt3)
+
+treeSt4 <- trestruct(beastSubset[[6]], minCladeSize = 150, minOverlap = -Inf, nsim = 10000,
+                     level = 0.05, ncpu = 1, verbosity = 1) 
+plot(treeSt4)
+#problem is that node label vary with each iteration...
 
 #------------------------------------------------------------------------
 ##################Skygrowth models and phylodynn effective pop size##################
@@ -259,8 +261,8 @@ neplot(mcmcfit_c1 )+theme_bw()
 
 #compare to phylodynn
 BSpsLin1<- BNPR(Clade1nex, lengthout = 35, prec_alpha = 0.01, prec_beta = 0.01,
-                   beta1_prec = 0.001, fns = NULL, log_fns = TRUE, simplify = TRUE,
-                   derivative = FALSE, forward = TRUE)
+                beta1_prec = 0.001, fns = NULL, log_fns = TRUE, simplify = TRUE,
+                derivative = FALSE, forward = TRUE)
 par(mar=c(5.1,4.1,4.1,2.1))
 plot_BNPR(BSpsLin1)
 
@@ -280,8 +282,8 @@ growth.plot(mcmcfit_l2)+theme_bw()
 
 #compare with Phylodynn
 BSpsLin2<- BNPR(Clade2nex, lengthout = 35, prec_alpha = 0.01, prec_beta = 0.01, #lengthout = number of grid points
-                   beta1_prec = 0.001, fns = NULL, log_fns = TRUE, simplify = TRUE,
-                   derivative = FALSE, forward = TRUE)
+                beta1_prec = 0.001, fns = NULL, log_fns = TRUE, simplify = TRUE,
+                derivative = FALSE, forward = TRUE)
 par(mar=c(5.1,4.1,4.1,2.1))
 plot_BNPR(BSpsLin2)
 
@@ -307,8 +309,8 @@ neplot(mcmcfit_l3 )+theme_bw()
 # compare to phylodynn
 
 BSpsLi3<- BNPR(Clade3nex, lengthout = 10, prec_alpha = 0.01, prec_beta = 0.01,
-                   beta1_prec = 0.001, fns = NULL, log_fns = TRUE, simplify = TRUE,
-                   derivative = FALSE, forward = TRUE)
+               beta1_prec = 0.001, fns = NULL, log_fns = TRUE, simplify = TRUE,
+               derivative = FALSE, forward = TRUE)
 par(mar=c(5.1,4.1,4.1,2.1))
 plot_BNPR(BSpsLi3)
 
@@ -367,15 +369,11 @@ plot(treeSt, use_ggtree = TRUE)
 tokeepc1<-setdiff(b$tip.label,names(treeSt$clustering)[which(treeSt$clustering==1)]) 
 Clade1nex<-drop.tip(resPoly,tokeepc1)
 
-
-
 # going forward in the tree to remove weird outliers
 ggtree(Clade1nex) + geom_tiplab(size=2)+ geom_text2(aes(subset=!isTip, label=node), hjust=-.3) 
 
 
 Clade1_names <- as.data.frame(get_taxa_name(tree_view = NULL, node = NULL))
-
-
 
 #Lineage C
 
@@ -488,10 +486,68 @@ neplot(mcmcfit_l3BEAST )+theme_bw()
 # compare to phylodynn
 
 BSpsLi3B<- BNPR(Clade3nexBEAST, lengthout = 10, prec_alpha = 0.01, prec_beta = 0.01,
-               beta1_prec = 0.001, fns = NULL, log_fns = TRUE, simplify = TRUE,
-               derivative = FALSE, forward = TRUE)
+                beta1_prec = 0.001, fns = NULL, log_fns = TRUE, simplify = TRUE,
+                derivative = FALSE, forward = TRUE)
 par(mar=c(5.1,4.1,4.1,2.1))
 plot_BNPR(BSpsLi3B)
+
+
+#---------------------------
+#Testing if tree structure is linked to geography
+#---------------------------
+ggtree(resPoly)+ geom_tiplab(size=2) #treedater tree
+
+
+comm <- as.data.frame(get_taxa_name(tree_view = NULL, node = NULL))
+names(comm) <- c('country')
+commRed_a1 <- as.data.frame(gsub('hCov-19', "hCoV-19", comm$country))
+names(commRed_a1) <- c('country')
+commRed_a <- as.data.frame(gsub('hCoV-19/', "", commRed_a1$country))
+names(commRed_a)<- c('country')
+commRed_b <- as.data.frame(sub("/.+", "", commRed_a$country))
+names(commRed_b)<- c('country')
+
+#by country
+#make all Chinese provinces China
+commRed_China <- gsub("Anhui|Yunnan|Guangdong|Wuhan|Beijing|Sichuan|Guangzhou|Zhejiang|Shenzhen|Shandong|Foshan|Jingzhou|Shanghai|Jiangsu|Tianmen|Jiangxi|Chongqing", "China", commRed_b$country)
+
+commRed_UK <- gsub("Wales|Scotland|England", "UK", commRed_China)
+commRed_brazil <- gsub("Brazil-RJ", "Brazil", commRed_UK)
+commRed_AUS <- gsub("Sydney", "Australia", commRed_brazil)
+commRed_Neth <- gsub("NetherlandsL", "Netherlands", commRed_AUS)
+names(commRed_Neth ) <- c('Country')
+commFinal <- cbind(comm, commRed_Neth)
+
+row.names(commFinal) <- commFinal$country
+commFinal$country <- NULL
+commFinal_num <- as.numeric(commFinal$commRed_Neth)
+
+
+comm_continent <- commRed_Neth 
+comm_continent_Asia <- gsub("China|Singapore|India|Cambodia|Nepal|Taiwan|Japan|Georgia|Vietnam", "Asia", comm_continent )
+comm_continent_Europe <- gsub("Spain|UK|Netherlands|Switzerland|Ireland|France|Finland|Italy|Germany|Denmark|Belgium|Luxembourg|Portugal", "Europe", comm_continent_Asia )
+comm_continent_SouthAmerica <- gsub("Chile|Brazil", "SAmerica", comm_continent_Europe )
+comm_continent_Africa <- gsub("Congo|Nigeria", "Africa", comm_continent_SouthAmerica )
+comm_continent_NAmerica <- gsub("USA|Canada|Mexico|Panama", "NAmerica", comm_continent_Africa )
+names(comm_continent_NAmerica ) <- c('Continent')
+
+commFinalCon <- cbind(comm, comm_continent_NAmerica)
+row.names(commFinalCon) <- commFinalCon$Continent
+commFinalCon$Continent <- NULL
+commFinal_num_cont <- as.numeric(commFinalCon$comm_continent_NAmerica)
+
+
+#by country
+
+psig <- phylosignal(commFinal_num, resPoly, reps = 9999)
+# K PIC.variance.obs PIC.variance.rnd.mean PIC.variance.P PIC.variance.Z
+#1 0.03827064         12767.92              22639.89         0.2005     -0.9110183
+psig_cont
+
+#by continent
+psig_cont <- phylosignal(commFinal_num_cont, resPoly, reps = 9999)
+#K PIC.variance.obs PIC.variance.rnd.mean PIC.variance.P PIC.variance.Z
+#1 0.1239719         49.08956              274.3297          0.012      -1.513256
 
 #----------------------------
 #Extracting sequences from each clade - not used in the manuscript 
@@ -515,7 +571,7 @@ clade_1seq <- dnaNN %>%
 
 
 row.names(clade_1seq) <- as.character(clade_1seq$seq)
- SeqNames <- clade_1seq$seq
+SeqNames <- clade_1seq$seq
 clade_1seq$seq <- NULL
 
 names(clade_1seq) <- 'dna'
@@ -572,3 +628,5 @@ ggmsa(ex.dna) , color = "Chemistry_NT")
 x <- c(2019.85)
 library(lubridate)
 (f <- format(date_decimal(x), "%d-%m-%Y"))
+
+
