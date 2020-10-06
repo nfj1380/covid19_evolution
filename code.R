@@ -149,27 +149,27 @@ t3
 ##################Compare treeStructure across BEAST posterior trees: Experimental currently################## 
 #--------------------------------------------------------------------------------------------------
 
-allTrees <- scan(file="covid_pdatedrelaxedClock1.trees.txt", what="", sep="\n", quiet=TRUE) #read in .trees file
+allTrees <- scan(file="covid_alignment_refinedUpdatedrelaxedClock1.trees.txt", what="", sep="\n", quiet=TRUE) #read in .trees file
 
 #check how many trees are stored
 allTrees 
 
-burnIn <- 400; index1 = which(grepl("tree STATE_0 ",allTrees)) + burnIn #10% burnIn
+burnIn <- 1000; index1 = which(grepl("tree STATE_0 ",allTrees)) + burnIn #10% burnIn
 
-samplingFrequency <- (length(allTrees)-index1)/100 #sample 100 of those trees
+samplingFrequency <- (length(allTrees)-index1)/1000 #sample 1000 of those trees
 
 #
 allTrees1 <- allTrees[1:(which(grepl("tree STATE_0 ",allTrees))-1)] #tip names
 allTrees2 <- c(allTrees[seq(((index1-1)+samplingFrequency),length(allTrees),samplingFrequency)],"End;") #tree info
 #can write this as an object which could be useful
-write(c(allTrees1,allTrees2), "covid_updatedrelaxedClock1_100.trees")
+write(c(allTrees1,allTrees2), "covid_updatedrelaxedClock1_1000.trees")
+beastSubset <- read.nexus('covid_updatedrelaxedClock1_1000.trees') 
 
+#check to see if works
 #read Multiphy object
 
 library(ape)
-beastSubset <- read.nexus('covid_updatedrelaxedClock1_100.trees') #probably an easier way to do this
 
-#check to see if works
 ggtree(beastSubset[6]) + geom_tiplab(size=2)+ geom_text2(aes(subset=!isTip, label=node), hjust=-.3) 
 
 #--------------------------------------------------
@@ -179,31 +179,41 @@ MultiPhyloTreeStructure <- function(beastSub, minCladeSize = 145, minOverlap = -
   
   lp <- length(beastSub)
   
-  
-  lapply(lapply(seq(1, lp), function(phy){
+  treeSt <- lapply(seq(1, lp), function(phy){
     
-    treeSt <- trestruct(beastSubset[[phy]], minCladeSize = minCladeSize, minOverlap = minOverlap, nsim = nsim,
-                        level =  level, ncpu = ncpu, verbosity = verbosity )
+     as.data.frame(trestruct(beastSubset[[phy]], minCladeSize = minCladeSize, minOverlap = minOverlap, nsim = nsim,
+                        level =  level, ncpu = ncpu, verbosity = verbosity ))
     
-    treeSt 
     #treeSt_df <- as.data.frame(treeSt)
     
     #plot(treeSt, use_ggtree = TRUE) #overlay these gruops on the tree
-  }))
+ })
+  
 }  
 #--------------------------------------------------
 
-mTS <- MultiPhyloTreeStructure(beastSubset, minCladeSize = 150, minOverlap = -Inf, nsim = 1000,
-                               level = 0.1, ncpu = 1, verbosity = 1) #not working properly but works enough
-#Error in match.fun(FUN) : argument "FUN" is missing, with no default 
+mTS <- MultiPhyloTreeStructure(beastSubset, minCladeSize = 150, minOverlap = -Inf, nsim = 10000,
+                               level = 0.15, ncpu = 1, verbosity = 1) 
+mTS[1]
+
+bList <- mTS %>% purrr::map(pluck('cluster')) %>% 
+  purrr::map(as.data.frame) %>% 
+  map(unique) %>%
+  map(nrow)
+
+Nclust <- data.frame(matrix(unlist(bList), nrow=length(bList ), byrow=T))
+names(Nclust) <- c('Clusters')
+
+
+CluaterTable <- as.data.frame(table(Nclust))
 
 #look at some individual trees in the posterior and plot
-treeSt1 <- trestruct(beastSubset[[100]], minCladeSize = 150, minOverlap = -Inf, nsim = 10000,
-                     level = 0.05, ncpu = 1, verbosity = 1) 
+treeSt1 <- trestruct(beastSubset[[6]], minCladeSize = 150, minOverlap = -Inf, nsim = 100000,
+                     level = 0.1, ncpu = 1, verbosity = 1) 
 plot(treeSt1)
 
-treeSt2 <- trestruct(beastSubset[[99]], minCladeSize = 150, minOverlap = -Inf, nsim = 10000,
-                     level = 0.05, ncpu = 1, verbosity = 1) 
+treeSt2 <- trestruct(beastSubset[[50]], minCladeSize = 150, minOverlap = -Inf, nsim = 100000,
+                     level = 0.2, ncpu = 1, verbosity = 1) 
 plot(treeSt2)
 
 treeSt3 <- trestruct(beastSubset[[2]], minCladeSize = 150, minOverlap = -Inf, nsim = 10000,
